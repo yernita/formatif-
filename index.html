@@ -1,0 +1,1679 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SUPER MARIO - Kuis Biologi Ekosistem SMA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        /* Keamanan Anti Copy-Paste & Seleksi Teks */
+        * {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        body {
+            font-family: 'Fredoka', sans-serif;
+            overflow: hidden;
+            touch-action: manipulation;
+            background-color: #1e293b;
+        }
+
+        .retro-font {
+            font-family: 'Press Start 2P', cursive;
+        }
+
+        /* Gaya Tombol ala Mario */
+        .mario-btn {
+            background: linear-gradient(to bottom, #ef4444, #dc2626);
+            border: 4px solid #fff;
+            box-shadow: 0 6px 0 #991b1b, 0 10px 15px rgba(0,0,0,0.3);
+            transition: all 0.1s;
+        }
+        .mario-btn:active {
+            transform: translateY(6px);
+            box-shadow: 0 0px 0 #991b1b, 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        .mario-btn-green {
+            background: linear-gradient(to bottom, #22c55e, #16a34a);
+            border: 4px solid #fff;
+            box-shadow: 0 6px 0 #166534, 0 10px 15px rgba(0,0,0,0.3);
+            transition: all 0.1s;
+        }
+        .mario-btn-green:active {
+            transform: translateY(6px);
+            box-shadow: 0 0px 0 #166534;
+        }
+
+        /* Blok Tanda Tanya Animasi */
+        @keyframes pulse-block {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+        }
+        .question-card {
+            animation: pulse-block 3s infinite ease-in-out;
+            border: 6px solid #f59e0b;
+            box-shadow: 0 12px 0 #b45309, 0 20px 25px rgba(0,0,0,0.5);
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body class="w-screen h-screen relative select-none" oncontextmenu="return false;">
+
+    <!-- ================= HUD (Heads-Up Display) ================= -->
+    <div id="hud" class="hidden absolute top-0 left-0 w-full z-20 p-2 md:p-4 pointer-events-none flex flex-wrap justify-between items-center gap-1.5 bg-gradient-to-b from-black/80 to-transparent text-white">
+        <div class="flex items-center gap-1.5 md:gap-3">
+            <div class="bg-red-600 border-2 border-white px-2.5 py-1 rounded-xl shadow-md">
+                <p class="text-[9px] md:text-xs text-yellow-200 font-bold leading-none">PEMAIN</p>
+                <p id="hud-name" class="text-[11px] md:text-sm font-bold truncate max-w-[105px] sm:max-w-[160px] md:max-w-[200px]">Mario</p>
+            </div>
+            <div class="bg-blue-600 border-2 border-white px-2.5 py-1 rounded-xl shadow-md">
+                <p class="text-[9px] md:text-xs text-blue-200 font-bold leading-none">TEMA AREA</p>
+                <p id="hud-theme" class="text-[11px] md:text-sm font-bold">1. Luar Ruangan</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-1.5 md:gap-4">
+            <div class="bg-amber-500 border-2 border-white px-2.5 py-1 rounded-xl shadow-md text-center">
+                <p class="text-[9px] md:text-xs text-amber-950 font-bold leading-none">SOAL</p>
+                <p id="hud-progress" class="retro-font text-[10px] md:text-sm text-white mt-0.5">0/10</p>
+            </div>
+            <div class="bg-emerald-600 border-2 border-white px-3 py-1 rounded-xl shadow-md text-center">
+                <p class="text-[9px] md:text-xs text-emerald-200 font-bold leading-none">SKOR</p>
+                <p id="hud-score" class="retro-font text-xs md:text-base text-yellow-300 mt-0.5">0</p>
+            </div>
+            <button id="btn-mute" class="pointer-events-auto bg-slate-800/90 hover:bg-slate-700 border-2 border-white p-1.5 md:p-2.5 rounded-xl shadow-md text-white transition text-xs md:text-base" title="Suara On/Off">
+                🔊
+            </button>
+        </div>
+    </div>
+
+    <!-- Notifikasi Jika Kotak Terlewat -->
+    <div id="missed-box-toast" class="hidden absolute top-16 md:top-20 left-1/2 -translate-x-1/2 z-30 pointer-events-none bg-amber-500 text-slate-950 border-4 border-white px-4 py-2 rounded-2xl shadow-xl font-bold text-xs md:text-sm text-center whitespace-nowrap animate-bounce">
+        ⏪ Kotak [?] Terlewat! Mario Berbalik ke Kotak Soal!
+    </div>
+
+    <!-- Kontrol Layar Sentuh HP & Satu Tangan -->
+    <div id="control-hint" class="hidden absolute bottom-3 left-0 w-full px-3 z-20 pointer-events-none flex justify-between items-end gap-2">
+        <button id="btn-rewind-box" class="pointer-events-auto bg-amber-500 active:bg-amber-600 text-slate-950 border-3 border-white px-3 py-2.5 rounded-2xl shadow-lg font-bold text-xs md:text-sm flex items-center gap-1.5 transition active:scale-95">
+            <span>⏪</span> <span class="hidden sm:inline">Ke</span> Kotak [?]
+        </button>
+
+        <div class="bg-black/70 backdrop-blur-sm text-white px-3.5 py-2 rounded-2xl border border-white/40 text-[11px] md:text-sm font-semibold text-center max-w-[230px] sm:max-w-none leading-tight">
+            👆 Ketuk & Tahan Layar di Mana Saja untuk <b>LOMPAT TINGGI!</b>
+        </div>
+
+        <button id="btn-jump-mobile" class="pointer-events-auto mario-btn text-white px-4 py-3 rounded-2xl shadow-xl font-bold text-xs md:text-sm flex items-center gap-1 select-none">
+            🚀 LOMPAT
+        </button>
+    </div>
+
+    <!-- ================= CANVAS GAME ================= -->
+    <canvas id="gameCanvas" class="w-full h-full"></canvas>
+
+    <!-- ================= LAYAR AWAL (FORM IDENTITAS) ================= -->
+    <div id="login-modal" class="absolute inset-0 z-30 flex items-center justify-center p-4 bg-gradient-to-b from-sky-400 via-sky-300 to-emerald-400">
+        <!-- Dekorasi Awan & Bukit Kelas yang Ramah -->
+        <div class="max-w-lg w-full bg-white rounded-3xl p-6 md:p-8 border-8 border-yellow-400 shadow-2xl relative overflow-hidden">
+            <div class="bg-red-600 text-white text-center py-3 px-4 rounded-2xl mb-5 border-4 border-red-800 shadow-inner">
+                <h1 class="retro-font text-lg md:text-2xl tracking-wider text-yellow-300 drop-shadow">SUPER MARIO</h1>
+                <p class="text-xs md:text-sm font-bold mt-1 tracking-wide uppercase">Edisi Kuis Biologi SMA - Ekosistem</p>
+            </div>
+
+            <div class="bg-amber-50 border-2 border-amber-300 rounded-xl p-3 mb-5 text-xs md:text-sm text-amber-900">
+                <p class="font-bold text-amber-800 mb-1">📌 Materi: Aliran Energi (Rantai & Jaring Makanan, Piramida Ekologi)</p>
+                <ul class="list-disc list-inside space-y-0.5 text-xs">
+                    <li>Mario berlari otomatis. <b>Tahan ketukan layar</b> untuk melompat lebih tinggi!</li>
+                    <li>Sundul <b>10 Kotak Tanda Tanya [?]</b> untuk menjawab soal (Waktu 1 menit/soal).</li>
+                    <li>⚠️ <b>PERINGATAN KEAMANAN:</b> Dilarang pindah tab/aplikasi lain! Jika keluar dari layar permainan, game langsung diulang dari awal dan <b>Skor menjadi 0</b>!</li>
+                </ul>
+            </div>
+
+            <form id="login-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-1">Nama Lengkap Siswa</label>
+                    <input type="text" id="input-nama" required placeholder="Masukkan nama lengkap..." 
+                        class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 focus:border-red-500 focus:outline-none font-semibold text-slate-800 select-text">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-1">Nomor Absen</label>
+                        <input type="number" id="input-absen" required min="1" max="50" placeholder="Contoh: 12" 
+                            class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 focus:border-red-500 focus:outline-none font-semibold text-slate-800 select-text">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-1">Pilih Kelas</label>
+                        <select id="input-kelas" required 
+                            class="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 focus:border-red-500 focus:outline-none font-bold text-slate-800 bg-white">
+                            <option value="">-- Pilih Kelas --</option>
+                            <option value="XA">Kelas X A</option>
+                            <option value="XB">Kelas X B</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="login-error" class="hidden bg-red-100 text-red-700 text-xs font-bold p-2.5 rounded-lg text-center">
+                    Mohon lengkapi Nama, Nomor Absen, dan Kelas (XA / XB)!
+                </div>
+
+                <button type="submit" class="mario-btn w-full py-3.5 rounded-2xl text-white font-bold text-base md:text-lg tracking-wide cursor-pointer mt-2">
+                    🚀 MULAI PETUALANGAN!
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= MODAL PERTANYAAN KUIS ================= -->
+    <div id="quiz-modal" class="hidden absolute inset-0 z-40 flex items-center justify-center p-2 md:p-4 bg-black/80 backdrop-blur-sm">
+        <div class="question-card max-w-3xl w-full bg-amber-50 rounded-3xl p-4 md:p-6 relative max-h-[94vh] flex flex-col">
+            <!-- Header Soal & Timer -->
+            <div class="flex justify-between items-center border-b-4 border-amber-300 pb-2.5 mb-3 shrink-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="bg-amber-500 text-white retro-font text-[10px] md:text-xs px-3 py-1.5 rounded-lg border-2 border-amber-700 shadow">[?] SOAL TKA <span id="quiz-num">1</span>/10</span>
+                    <span id="quiz-type-badge" class="text-[11px] md:text-xs font-bold text-blue-900 bg-blue-200 border border-blue-400 px-2.5 py-1 rounded-lg">Pilihan Ganda</span>
+                    <span class="text-[11px] md:text-xs font-bold text-amber-900 bg-amber-200 px-2.5 py-1 rounded-lg">Poin: +10</span>
+                </div>
+                <div class="flex items-center gap-1.5 bg-red-600 text-white px-3 py-1.5 rounded-xl border-2 border-red-800 shadow shrink-0">
+                    <span class="text-xs md:text-sm">⏱️</span>
+                    <span id="quiz-timer" class="retro-font text-xs md:text-sm text-yellow-300">60s</span>
+                </div>
+            </div>
+
+            <!-- Konten Scrollable (Metadata TKA, Stimulus, Soal, Opsi) -->
+            <div class="overflow-y-auto pr-1 space-y-3 flex-1">
+                <!-- Box Kisi-Kisi TKA (Elemen, Subelemen, Kompetensi, Indikator) -->
+                <div class="bg-slate-100 border-2 border-slate-300 rounded-xl p-2.5 text-[11px] md:text-xs text-slate-700 leading-snug">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1">
+                        <div><span class="font-bold text-slate-900">Elemen:</span> <span id="tka-elemen"></span></div>
+                        <div><span class="font-bold text-slate-900">Subelemen:</span> <span id="tka-subelemen"></span></div>
+                        <div class="md:col-span-2"><span class="font-bold text-slate-900">Kompetensi:</span> <span id="tka-kompetensi"></span></div>
+                        <div class="md:col-span-2"><span class="font-bold text-slate-900">Indikator:</span> <span id="tka-indikator" class="text-blue-800 font-semibold"></span></div>
+                    </div>
+                </div>
+
+                <!-- Stimulus & Teks Pertanyaan -->
+                <div class="bg-white border-2 border-amber-300 rounded-2xl p-3.5 shadow-inner space-y-2.5">
+                    <div id="quiz-stimulus" class="text-slate-700 text-xs md:text-sm leading-relaxed space-y-2 border-l-4 border-amber-500 pl-3 bg-amber-50/50 py-1.5 rounded-r-lg"></div>
+                    <p id="quiz-question" class="text-slate-900 font-bold text-xs md:text-sm leading-relaxed pt-1"></p>
+                </div>
+
+                <!-- Pilihan Jawaban (Dinamis sesuai tipe TKA: PG A-E / Checkbox Kompleks / Tabel Benar-Salah) -->
+                <div id="quiz-options" class="space-y-2">
+                    <!-- Diisi via JavaScript -->
+                </div>
+
+                <!-- Tombol Kirim Jawaban (Khusus PG Kompleks & Benar/Salah) -->
+                <button id="btn-submit-complex" class="hidden mario-btn w-full py-2.5 rounded-xl text-white font-bold text-xs md:text-sm tracking-wide cursor-pointer">
+                    ✔️ KUNCI JAWABAN (1X KESEMPATAN)
+                </button>
+
+                <!-- Feedback Jawaban -->
+                <div id="quiz-feedback" class="hidden rounded-2xl p-3 text-center border-2">
+                    <p id="feedback-title" class="font-bold text-sm md:text-base mb-0.5"></p>
+                    <p id="feedback-desc" class="text-xs leading-relaxed font-medium"></p>
+                </div>
+            </div>
+
+            <!-- Tombol Lanjut Berlari -->
+            <button id="btn-continue-game" class="hidden mario-btn-green w-full py-2.5 mt-3 rounded-2xl text-white font-bold text-sm md:text-base tracking-wide cursor-pointer shrink-0">
+                LANJUTKAN BERLARI ➡️
+            </button>
+        </div>
+    </div>
+
+    <!-- ================= MODAL PERINGATAN PELANGGARAN KEAMANAN (ANTI-CURANG) ================= -->
+    <div id="security-modal" class="hidden absolute inset-0 z-50 flex items-center justify-center p-4 bg-red-950/90 backdrop-blur-md">
+        <div class="max-w-md w-full bg-white rounded-3xl p-6 md:p-8 border-8 border-red-600 text-center shadow-2xl">
+            <div class="text-5xl mb-3">🚨</div>
+            <h2 class="retro-font text-base md:text-lg text-red-600 mb-2">PELANGGARAN KEAMANAN!</h2>
+            <p class="text-slate-700 font-bold text-sm md:text-base mb-4">
+                Kamu terdeteksi keluar dari halaman permainan atau membuka tab/aplikasi lain!
+            </p>
+            <div class="bg-red-100 border-2 border-red-400 rounded-xl p-3 mb-6 text-xs md:text-sm text-red-900 font-semibold">
+                Sesuai peraturan ujian, seluruh progres permainan direset ke awal dan <b>Skor Nilai otomatis kembali menjadi 0</b>.
+            </div>
+            <button id="btn-reset-security" class="mario-btn w-full py-3 rounded-2xl text-white font-bold text-base cursor-pointer">
+                ULANGI DARI AWAL (SKOR 0)
+            </button>
+        </div>
+    </div>
+
+    <!-- ================= MODAL HASIL AKHIR (FINISH) ================= -->
+    <div id="finish-modal" class="hidden absolute inset-0 z-40 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+        <div class="max-w-lg w-full bg-white rounded-3xl p-6 md:p-8 border-8 border-emerald-500 text-center shadow-2xl">
+            <div class="text-5xl mb-2">🏆</div>
+            <h2 class="retro-font text-lg md:text-xl text-emerald-600 mb-1">GARIS FINISH TERCAPAI!</h2>
+            <p class="text-xs md:text-sm font-bold text-slate-500 mb-5">Selamat, kamu telah menaklukkan Kastil Bowser & menyelesaikan kuis!</p>
+
+            <div class="bg-slate-100 border-2 border-slate-300 rounded-2xl p-4 mb-5 text-left space-y-2 text-sm">
+                <div class="flex justify-between border-b pb-1.5">
+                    <span class="text-slate-500 font-semibold">Nama Siswa:</span>
+                    <span id="final-nama" class="font-bold text-slate-800"></span>
+                </div>
+                <div class="flex justify-between border-b pb-1.5">
+                    <span class="text-slate-500 font-semibold">No. Absen / Kelas:</span>
+                    <span id="final-identitas" class="font-bold text-slate-800"></span>
+                </div>
+                <div class="flex justify-between border-b pb-1.5">
+                    <span class="text-slate-500 font-semibold">Kotak Soal Dijawab:</span>
+                    <span id="final-answered" class="font-bold text-blue-600"></span>
+                </div>
+                <div class="flex justify-between items-center pt-1">
+                    <span class="text-slate-700 font-bold text-base">TOTAL NILAI AKHIR:</span>
+                    <span id="final-score" class="retro-font text-2xl text-emerald-600 bg-emerald-100 px-3 py-1 rounded-xl border-2 border-emerald-400">100</span>
+                </div>
+            </div>
+
+            <button id="btn-play-again" class="mario-btn-green w-full py-3.5 rounded-2xl text-white font-bold text-base cursor-pointer">
+                🔄 MAINKAN LAGI
+            </button>
+        </div>
+    </div>
+
+    <script>
+        /* =========================================================================
+           1. DATA 10 SOAL TKA BIOLOGI SMA (KELAS X) - ALIRAN ENERGI & PIRAMIDA EKOLOGI
+              Format sesuai standar TKA Biologi (Pilihan Ganda A-E, PG Kompleks, Benar/Salah)
+           ========================================================================= */
+        const QUESTIONS = [
+            {
+                type: "single",
+                badge: "TKA - Pilihan Ganda (A-E)",
+                elemen: "Keanekaragaman Hayati & Ekosistem",
+                subelemen: "Ekosistem (Aliran Energi dan Rantai Makanan)",
+                kompetensi: "Menganalisis komponen ekosistem, aliran energi, dan interaksi dalam rantai makanan.",
+                indikator: "Menentukan peran tingkat trofik organisme dalam suatu rantai makanan ekosistem sawah.",
+                stimulus: "Di sebuah ekosistem sawah yang subur di pedesaan, petani mengamati adanya interaksi makan dan dimakan yang menjaga keseimbangan populasi. Tanaman padi tumbuh memanfaatkan energi cahaya matahari melalui fotosintesis. Belalang memakan daun padi untuk memperoleh energi, kemudian katak memangsa belalang tersebut. Selanjutnya, ular sawah memangsa katak, hingga akhirnya burung elang memangsa ular sawah.",
+                q: "Berdasarkan informasi aliran energi pada rantai makanan di ekosistem sawah tersebut, peran ekologis yang ditempati oleh katak adalah ....",
+                options: [
+                    "A. Produsen karena menyediakan energi langsung bagi ular sawah",
+                    "B. Konsumen tingkat I yang memakan tumbuhan hijau secara langsung",
+                    "C. Konsumen tingkat II yang menduduki tingkat trofik ketiga",
+                    "D. Konsumen tingkat III yang menduduki tingkat trofik keempat",
+                    "E. Dekomposer yang menguraikan bahan organik menjadi zat anorganik"
+                ],
+                correct: 2,
+                explanation: "Urutan tingkat trofik: Padi (Produsen / Trofik I) ➔ Belalang (Konsumen I / Trofik II) ➔ Katak (Konsumen II / Trofik III) ➔ Ular (Konsumen III / Trofik IV)."
+            },
+            {
+                type: "complex",
+                badge: "TKA - Pilihan Ganda Kompleks",
+                elemen: "Keanekaragaman Hayati & Ekosistem",
+                subelemen: "Ekosistem (Jaring-Jaring Makanan)",
+                kompetensi: "Menganalisis dampak perubahan populasi salah satu komponen pada jaring-jaring makanan.",
+                indikator: "Memprediksi dampak penurunan populasi predator terhadap keseimbangan jaring-jaring makanan.",
+                stimulus: "Pada ekosistem lahan pertanian padi terjadi perburuan liar terhadap ular sawah untuk diperdagangkan kulitnya hingga populasi ular menurun drastis. Di ekosistem tersebut, tanaman padi dimakan oleh tikus sawah dan belalang. Belalang dimakan oleh katak, sedangkan ular sawah merupakan pemangsa utama bagi tikus sawah dan katak. Burung hantu di area tersebut juga turut memangsa tikus dan ular.",
+                q: "Dengan mencermati informasi tersebut, peristiwa manakah yang berkaitan langsung dengan penurunan drastis populasi ular sawah? Klik pada setiap jawaban yang benar! (Jawaban benar lebih dari satu)",
+                options: [
+                    "Populasi tikus sawah meningkat pesat karena berkurangnya predator utama.",
+                    "Hasil panen padi petani menurun akibat meningkatnya serangan hama tikus.",
+                    "Populasi tanaman padi meningkat drastis karena tidak ada ular di sawah.",
+                    "Populasi katak dalam jangka pendek cenderung meningkat karena tekanan predasi ular berkurang.",
+                    "Aliran energi dari matahari ke produsen berhenti sepenuhnya."
+                ],
+                correct: [0, 1, 3],
+                explanation: "Penurunan populasi ular sawah menyebabkan mangsanya (tikus dan katak) mengalami peningkatan populasi, yang berakibat merosotnya hasil panen padi akibat ledakan hama tikus."
+            },
+            {
+                type: "true_false",
+                headers: ["Benar", "Salah"],
+                badge: "TKA - Tabel Benar / Salah",
+                elemen: "Keanekaragaman Hayati & Ekosistem",
+                subelemen: "Ekosistem (Piramida Ekologi & Efisiensi Energi)",
+                kompetensi: "Menganalisis perpindahan energi antar tingkat trofik dalam piramida ekologi.",
+                indikator: "Menentukan kebenaran pernyataan terkait Hukum Efisiensi Ekologi 10% (Lindeman).",
+                stimulus: "Seorang peneliti mengukur kandungan energi pada sebuah piramida energi ekosistem padang rumput. Diketahui jaringan tumbuhan rumput (Produsen) menyimpan energi sebesar 10.000 kkal/m²/tahun. Sesuai hukum efisiensi ekologi, rata-rata hanya sekitar 10% energi yang berhasil diteruskan ke tingkat trofik di atasnya (Kelinci ➔ Ular ➔ Elang), sementara sisanya hilang sebagai panas respirasi.",
+                q: "Tentukan BENAR atau SALAH pada setiap pernyataan berikut terkait aliran energi pada piramida ekologi tersebut!",
+                statements: [
+                    { text: "Energi yang tersimpan pada tubuh Kelinci (Konsumen I) adalah sekitar 1.000 kkal/m²/tahun.", ans: true },
+                    { text: "Elang sebagai konsumen puncak memperoleh jumlah energi terbesar dibandingkan tingkat trofik lainnya.", ans: false },
+                    { text: "Sekitar 90% energi pada setiap tingkat trofik digunakan untuk aktivitas metabolisme dan dilepaskan sebagai panas.", ans: true }
+                ],
+                explanation: "Dari 10.000 kkal pada rumput, 10% berpindah ke kelinci (1.000 kkal), ke ular (100 kkal), dan ke elang (10 kkal). 90% energi hilang sebagai panas metabolisme."
+            },
+            {
+                type: "single",
+                badge: "TKA - Pilihan Ganda (A-E)",
+                elemen: "Keterampilan Proses",
+                subelemen: "Memproses, Menganalisis Data dan Informasi",
+                kompetensi: "Mengolah data pengamatan ekosistem dan menyimpulkan bentuk piramida ekologi.",
+                indikator: "Menginterpretasi jenis piramida ekologi yang tepat berdasarkan tabel data hasil pengamatan.",
+                stimulus: `Sekelompok murid SMA melakukan pengamatan biomassa kering organisme pada ekosistem perairan laut terbuka pada suatu waktu tertentu dan memperoleh data sebagai berikut:
+                <table class="w-full text-left border-collapse border border-slate-300 mt-1 text-[11px]">
+                    <tr class="bg-slate-200 font-bold"><th class="border border-slate-300 p-1">Tingkat Trofik</th><th class="border border-slate-300 p-1">Organisme</th><th class="border border-slate-300 p-1">Biomassa (g/m²)</th></tr>
+                    <tr><td class="border border-slate-300 p-1">Trofik I (Produsen)</td><td class="border border-slate-300 p-1">Fitoplankton</td><td class="border border-slate-300 p-1">4 g/m²</td></tr>
+                    <tr><td class="border border-slate-300 p-1">Trofik II (Konsumen I)</td><td class="border border-slate-300 p-1">Zooplankton</td><td class="border border-slate-300 p-1">21 g/m²</td></tr>
+                    <tr><td class="border border-slate-300 p-1">Trofik III (Konsumen II)</td><td class="border border-slate-300 p-1">Ikan Kecil</td><td class="border border-slate-300 p-1">35 g/m²</td></tr>
+                </table>`,
+                q: "Berdasarkan tabel hasil pengamatan tersebut, kesimpulan yang paling tepat mengenai bentuk piramida ekologi yang terbentuk adalah ....",
+                options: [
+                    "A. Piramida energi terbalik karena fitoplankton menghasilkan energi lebih kecil dari ikan",
+                    "B. Piramida biomassa terbalik karena biomassa produsen lebih kecil daripada konsumen di atasnya",
+                    "C. Piramida jumlah tegak karena jumlah individu ikan kecil lebih banyak daripada fitoplankton",
+                    "D. Piramida biomassa tegak karena produsen selalu memiliki berat kering paling besar di laut",
+                    "E. Piramida energi tegak yang membuktikan energi bertambah besar pada setiap tingkat trofik"
+                ],
+                correct: 1,
+                explanation: "Pada ekosistem perairan, biomassa fitoplankton (4 g/m²) pada satu waktu lebih kecil dari zooplankton (21 g/m²) namun bereproduksi sangat cepat, sehingga membentuk Piramida Biomassa Terbalik."
+            },
+            {
+                type: "true_false",
+                headers: ["Sesuai", "Tidak Sesuai"],
+                badge: "TKA - Sesuai / Tidak Sesuai",
+                elemen: "Keanekaragaman Hayati & Ekosistem",
+                subelemen: "Ekosistem (Peran Produsen dan Dekomposer)",
+                kompetensi: "Menganalisis keterkaitan siklus materi dan aliran energi antara produsen serta dekomposer.",
+                indikator: "Menentukan kesesuaian pernyataan mengenai peran mikroorganisme pengurai dalam ekosistem.",
+                stimulus: "Di lantai hutan hujan tropis, guguran daun kering dan sisa tubuh hewan yang mati tidak menumpuk selamanya. Bakteri saprofit dan jamur bekerja menguraikan bahan organik kompleks pada bangkai tersebut. Proses dekomposisi ini mengembalikan unsur hara mineral (seperti nitrogen dan fosfor) ke dalam tanah sehingga dapat diserap kembali oleh akar pohon.",
+                q: "Klik pilihan SESUAI atau TIDAK SESUAI pada setiap pernyataan berikut yang berkaitan dengan peran organisme dalam wacana tersebut!",
+                statements: [
+                    { text: "Bakteri dan jamur berperan sebagai dekomposer yang mengubah bahan organik mati menjadi zat anorganik penyubur tanah.", ans: true },
+                    { text: "Energi panas yang dilepaskan saat respirasi pengurai dapat ditangkap kembali oleh tumbuhan untuk fotosintesis.", ans: false },
+                    { text: "Tanpa kehadiran dekomposer, ketersediaan mineral bagi produsen (tumbuhan hijau) akan berkurang.", ans: true }
+                ],
+                explanation: "Materi/unsur hara berputar dalam siklus (dari dekomposer kembali ke produsen), namun aliran energi bersifat satu arah (panas tidak dapat digunakan kembali oleh tumbuhan untuk fotosintesis)."
+            },
+            {
+                type: "single",
+                badge: "TKA - Pilihan Ganda (A-E)",
+                elemen: "Keanekaragaman Hayati & Ekosistem",
+                subelemen: "Ekosistem (Perbandingan Piramida Ekologi)",
+                kompetensi: "Menganalisis kelebihan dan keterbatasan piramida jumlah, biomassa, dan energi.",
+                indikator: "Menjelaskan alasan piramida energi merupakan gambaran aliran energi paling akurat.",
+                stimulus: "Dalam kajian ekologi, ilmuwan menggunakan tiga macam piramida ekologi: piramida jumlah, piramida biomassa, dan piramida energi. Pada ekosistem hutan, satu pohon beringin besar dapat menjadi sumber makanan bagi ribuan ulat daun dan ratusan burung pemakan serangga, sehingga piramida jumlahnya menyempit di bagian dasar. Namun, ketika diukur menggunakan piramida energi, bentuknya selalu tegak lurus (lebar di dasar dan meruncing di puncak).",
+                q: "Berdasarkan informasi tersebut, mengapa piramida energi tidak pernah ditemukan dalam kondisi terbalik pada ekosistem alami yang seimbang?",
+                options: [
+                    "A. Ukuran tubuh konsumen puncak selalu lebih kecil dibandingkan ukuran tubuh produsen",
+                    "B. Jumlah individu pada tingkat trofik pertama selalu lebih sedikit dibandingkan konsumen primer",
+                    "C. Perpindahan energi selalu mengalami pengurangan di setiap tingkat trofik akibat pelepasan panas metabolisme",
+                    "D. Produsen hanya mampu menyerap energi dari konsumen tingkat pertama dan dekomposer",
+                    "E. Kecepatan reproduksi konsumen tersier lebih tinggi daripada kecepatan fotosintesis tumbuhan"
+                ],
+                correct: 2,
+                explanation: "Piramida energi selalu tegak karena tunduk pada Hukum Termodinamika: energi selalu berkurang di setiap perpindahan tingkat trofik (sekitar 90% terlepas sebagai panas)."
+            },
+            {
+                type: "complex",
+                badge: "TKA - Pilihan Ganda Kompleks",
+                elemen: "Keanekaragaman Hayati & Ekosistem",
+                subelemen: "Ekosistem (Kedudukan Trofik pada Jaring Makanan)",
+                kompetensi: "Menganalisis organisme yang menempati lebih dari satu tingkat trofik dalam jaring-jaring makanan.",
+                indikator: "Mengidentifikasi kedudukan tingkat trofik organisme omnivora/predator pada jaring makanan kebun.",
+                stimulus: "Di sebuah ekosistem kebun sekolah terdapat jaring-jaring makanan yang tersusun atas beberapa jalur rantai makanan berikut:\n1) Tanaman Bayam ➔ Ulat Daun ➔ Burung Kutilang ➔ Ular Kebun\n2) Tanaman Bayam ➔ Belalang ➔ Laba-laba ➔ Burung Kutilang ➔ Ular Kebun\n3) Buah Pepaya ➔ Burung Kutilang ➔ Ular Kebun",
+                q: "Dengan mencermati ketiga jalur rantai makanan pada jaring-jaring makanan tersebut, pernyataan manakah yang tepat? Klik pada semua jawaban yang benar! (Jawaban benar lebih dari satu)",
+                options: [
+                    "Tanaman bayam dan pohon pepaya berperan sebagai tingkat trofik pertama (Produsen).",
+                    "Burung kutilang dapat berperan sebagai Konsumen I sekaligus Konsumen II tergantung jenis makanannya.",
+                    "Ular kebun berperan sebagai herbivora karena mendapat energi paling sedikit.",
+                    "Laba-laba menempati posisi sebagai Konsumen tingkat II (tingkat trofik ketiga) pada jalur kedua.",
+                    "Ulat daun dan belalang menempati tingkat trofik yang sama yaitu tingkat trofik kedua."
+                ],
+                correct: [0, 1, 3, 4],
+                explanation: "Bayam & pepaya = Produsen (Trofik I); Ulat & belalang = Konsumen I (Trofik II); Laba-laba = Konsumen II (Trofik III); Burung kutilang = Omnivora (Konsumen I saat makan pepaya, Konsumen II saat makan ulat)."
+            },
+            {
+                type: "single",
+                badge: "TKA - Pilihan Ganda (A-E)",
+                elemen: "Keanekaragaman Hayati & Ekosistem",
+                subelemen: "Ekosistem (Rantai Makanan Perumput & Detritus)",
+                kompetensi: "Membedakan karakteristik rantai makanan perumput (grazing) dan rantai makanan detritus.",
+                indikator: "Mengidentifikasi urutan aliran energi yang tepat pada rantai makanan detritus di ekosistem bakau.",
+                stimulus: "Ekosistem hutan mangrove (bakau) di pesisir pantai memiliki produktivitas yang tinggi. Sebagian besar daun bakau yang tua tidak dimakan langsung oleh herbivora di pohon, melainkan gugur ke dasar lumpur dan hancur menjadi serpihan bahan organik mati (detritus). Serpihan daun bakau ini menjadi sumber nutrisi utama bagi kepiting bakau kecil dan cacing lumpur, yang selanjutnya dimangsa oleh ikan-ikan muara dan burung bangau pantai.",
+                q: "Berdasarkan wacana tersebut, manakah pernyataan yang tepat mengenai tipe rantai makanan utama yang berlangsung di dasar lumpur hutan bakau tersebut?",
+                options: [
+                    "A. Rantai makanan perumput karena diawali oleh daun bakau yang masih hidup di atas pohon",
+                    "B. Rantai makanan detritus karena aliran energinya diawali dari hancuran bahan organik mati yang dimakan detritivor",
+                    "C. Rantai makanan parasit karena kepiting bakau mengambil nutrisi langsung dari akar pohon bakau",
+                    "D. Siklus autotrof karena cacing lumpur mampu melakukan fotosintesis di dalam lumpur pantai",
+                    "E. Rantai makanan dekomposisi murni yang tidak melibatkan hewan pemangsa tingkat tinggi"
+                ],
+                correct: 1,
+                explanation: "Rantai makanan yang diawali dari serpihan jaringan makhluk hidup yang telah mati (detritus) kemudian dimakan oleh detritivor (kepiting kecil/cacing) disebut rantai makanan detritus."
+            },
+            {
+                type: "true_false",
+                headers: ["Benar", "Salah"],
+                badge: "TKA - Tabel Benar / Salah",
+                elemen: "Keterampilan Proses",
+                subelemen: "Memproses, Menganalisis Data dan Informasi",
+                kompetensi: "Menganalisis akumulasi bahan pencemar (biomagnifikasi) di sepanjang rantai makanan.",
+                indikator: "Menentukan kebenaran pernyataan terkait dampak pestisida DDT pada tingkat trofik tertinggi.",
+                stimulus: `Sebuah danau tercemar limbah pestisida DDT dari lahan pertanian di sekitarnya. Karena DDT sukar terurai dan larut dalam lemak, zat tersebut terakumulasi di sepanjang rantai makanan. Hasil pemeriksaan laboratorium terhadap jaringan tubuh organisme di danau tersebut menunjukkan data berikut:
+                <table class="w-full text-left border-collapse border border-slate-300 mt-1 text-[11px]">
+                    <tr class="bg-slate-200 font-bold"><th class="border border-slate-300 p-1">Organisme</th><th class="border border-slate-300 p-1">Kadar DDT (ppm)</th></tr>
+                    <tr><td class="border border-slate-300 p-1">Air Danau</td><td class="border border-slate-300 p-1">0,00005 ppm</td></tr>
+                    <tr><td class="border border-slate-300 p-1">Zooplankton</td><td class="border border-slate-300 p-1">0,04 ppm</td></tr>
+                    <tr><td class="border border-slate-300 p-1">Ikan Kecil ➔ Ikan Besar</td><td class="border border-slate-300 p-1">0,5 ppm ➔ 2,0 ppm</td></tr>
+                    <tr><td class="border border-slate-300 p-1">Burung Pemakan Ikan</td><td class="border border-slate-300 p-1">25,0 ppm</td></tr>
+                </table>`,
+                q: "Tentukan BENAR atau SALAH pada pernyataan berikut berdasarkan data aliran materi dan rantai makanan di danau tersebut!",
+                statements: [
+                    { text: "Kadar racun DDT tertinggi terakumulasi pada organisme yang menduduki tingkat trofik tertinggi (konsumen puncak).", ans: true },
+                    { text: "Semakin tinggi tingkat trofik suatu organisme, semakin sedikit kadar pestisida yang tersimpan di dalam tubuhnya.", ans: false },
+                    { text: "Manusia yang mengonsumsi ikan besar dari danau tersebut berisiko tinggi terpapar akumulasi zat beracun.", ans: true }
+                ],
+                explanation: "Peristiwa ini disebut biomagnifikasi: akumulasi polutan meningkat berkali-kali lipat seiring naiknya tingkat trofik dalam rantai makanan."
+            },
+            {
+                type: "single",
+                badge: "TKA - Pilihan Ganda (A-E)",
+                elemen: "Keterampilan Proses",
+                subelemen: "Merencanakan dan Melakukan Penyelidikan",
+                kompetensi: "Merancang penyelidikan ilmiah terkait peran cahaya matahari terhadap aliran energi produsen.",
+                indikator: "Menentukan variabel dan kesimpulan yang tepat dari eksperimen ekosistem tertutup (terarium/akuarium).",
+                stimulus: `Seorang murid membuat dua buah ekosistem air tawar buatan tertutup (ekosistem botol) dengan komponen yang identik untuk menyelidiki aliran energi:
+                <ul class="list-disc list-inside text-[11px] mt-1">
+                    <li><b>Botol A:</b> Air + Tanaman air <i>Hydrilla</i> + 2 ekor siput air ➔ Diletakkan di tempat yang terkena cahaya matahari tidak langsung.</li>
+                    <li><b>Botol B:</b> Air + Tanaman air <i>Hydrilla</i> + 2 ekor siput air ➔ Ditutup rapat dengan kertas hitam (tanpa cahaya sama sekali).</li>
+                </ul>
+                Setelah 10 hari pengamatan, tanaman <i>Hydrilla</i> dan siput pada Botol A tetap hidup segar, sedangkan pada Botol B tanaman menguning layu dan siput mati.`,
+                q: "Berdasarkan hasil percobaan tersebut, analisis ilmiah yang paling tepat untuk menjelaskan kematian organisme pada Botol B adalah ....",
+                options: [
+                    "A. Kertas hitam menyerap seluruh oksigen dari dalam botol sehingga siput tidak dapat bernapas",
+                    "B. Tanpa energi cahaya matahari, produsen (Hydrilla) gagal melakukan fotosintesis sehingga suplai oksigen dan energi kimia bagi konsumen (siput) terhenti",
+                    "C. Siput air berubah menjadi dekomposer saat berada di tempat gelap sehingga membusukkan tanaman Hydrilla",
+                    "D. Suhu di dalam Botol B meningkat hingga mendidih akibat penutupan kertas hitam",
+                    "E. Aliran energi pada Botol B berjalan terlalu cepat sehingga cadangan mineral air habis dalam sehari"
+                ],
+                correct: 1,
+                explanation: "Cahaya matahari adalah sumber energi utama ekosistem. Tanpa cahaya (Botol B), produsen (Hydrilla) tidak dapat berfotosintesis menghasilkan glukosa dan oksigen untuk menopang hidup konsumen (siput)."
+            }
+        ];
+
+        /* =========================================================================
+           2. SISTEM AUDIO SYNTHESIZER (WEB AUDIO API) - RETRO SUPER MARIO SOUND
+           ========================================================================= */
+        class MarioSoundSystem {
+            constructor() {
+                this.ctx = null;
+                this.isMuted = false;
+                this.bgmTimer = null;
+                this.noteIndex = 0;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioCtx();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            playTone(freq, type, duration, delay = 0, vol = 0.12) {
+                if (this.isMuted || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, this.ctx.currentTime + delay);
+
+                gain.gain.setValueAtTime(vol, this.ctx.currentTime + delay);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + delay + duration);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(this.ctx.currentTime + delay);
+                osc.stop(this.ctx.currentTime + delay + duration);
+            }
+
+            playJump() {
+                if (this.isMuted || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'square';
+                const now = this.ctx.currentTime;
+                osc.frequency.setValueAtTime(180, now);
+                osc.frequency.exponentialRampToValueAtTime(620, now + 0.18);
+                gain.gain.setValueAtTime(0.12, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.18);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.18);
+            }
+
+            playBlockHit() {
+                // Suara koin / kotak tanda tanya Mario
+                this.playTone(987.77, 'square', 0.08, 0, 0.15); // B5
+                this.playTone(1318.51, 'square', 0.35, 0.08, 0.15); // E6
+            }
+
+            playCorrect() {
+                // Fanfare Power-Up Benar
+                const notes = [523.25, 659.25, 783.99, 1046.50, 783.99, 1046.50];
+                notes.forEach((n, i) => this.playTone(n, 'square', 0.12, i * 0.09, 0.15));
+            }
+
+            playWrong() {
+                // Suara salah / turun
+                this.playTone(300, 'sawtooth', 0.18, 0, 0.15);
+                this.playTone(220, 'sawtooth', 0.35, 0.18, 0.15);
+            }
+
+            playBump() {
+                this.playTone(130, 'triangle', 0.12, 0, 0.2);
+            }
+
+            playVictory() {
+                // Lagu Bendera Finish Mario
+                const melody = [392, 523, 659, 784, 1046, 784, 659, 784, 1046];
+                melody.forEach((f, idx) => this.playTone(f, 'square', 0.15, idx * 0.12, 0.16));
+            }
+
+            startBGM(themeIndex = 0) {
+                this.stopBGM();
+                // Melodi ceria berganti nuansa sesuai 4 tema dunia
+                const melodies = [
+                    // Tema 1: Overworld Ceria
+                    [659, 659, 0, 659, 0, 523, 659, 0, 784, 0, 0, 392, 0, 523, 392, 330],
+                    // Tema 2: Underground Bass IkoniK
+                    [261, 523, 220, 440, 233, 466, 0, 0, 261, 523, 220, 440, 233, 466, 0, 0],
+                    // Tema 3: Underwater Waltz Lembut
+                    [523, 659, 784, 659, 523, 659, 784, 880, 784, 659, 523, 587, 659, 587, 523, 0],
+                    // Tema 4: Bowser Castle Tegang
+                    [220, 233, 220, 196, 220, 233, 220, 196, 246, 261, 246, 220, 246, 261, 246, 220]
+                ];
+
+                const currentMelody = melodies[themeIndex % melodies.length];
+                this.noteIndex = 0;
+
+                this.bgmTimer = setInterval(() => {
+                    if (this.isMuted || !gameState.isRunning || gameState.isPausedForQuiz) return;
+                    const freq = currentMelody[this.noteIndex % currentMelody.length];
+                    if (freq > 0) {
+                        this.playTone(freq, themeIndex === 2 ? 'sine' : 'triangle', 0.14, 0, 0.06);
+                    }
+                    this.noteIndex++;
+                }, 190);
+            }
+
+            stopBGM() {
+                if (this.bgmTimer) {
+                    clearInterval(this.bgmTimer);
+                    this.bgmTimer = null;
+                }
+            }
+        }
+
+        const sound = new MarioSoundSystem();
+
+        /* =========================================================================
+           3. STATE PERMAINAN & KONFIGURASI LEVEL
+           ========================================================================= */
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let gameState = {
+            studentName: '',
+            studentAbsen: '',
+            studentClass: '',
+            score: 0,
+            isRunning: false,
+            isPausedForQuiz: false,
+            isFinished: false,
+            currentTheme: 0,
+            answeredCount: 0,
+            activeQuestionIndex: -1,
+            quizTimeLeft: 60,
+            quizInterval: null
+        };
+
+        // Karakter Mario
+        const mario = {
+            x: 120,
+            y: 0,
+            w: 42,
+            h: 52,
+            vx: 3.7, // Kecepatan pas untuk layar HP
+            vy: 0,
+            dir: 1,  // 1 = lari ke kanan, -1 = kembali ke kiri menuju kotak yang terlewat
+            returningToBlock: null,
+            isGrounded: false,
+            isJumping: false,
+            jumpHoldFrames: 0,
+            maxJumpHoldFrames: 20, // Semakin lama ditahan, semakin tinggi lompatannya
+            animFrame: 0,
+            invincibleTimer: 0
+        };
+
+        // Kamera Horizontal
+        let cameraX = 0;
+        const GROUND_OFFSET = 105; // Tinggi tanah ramah layar HP
+        const LEVEL_END_X = 9600; // Garis Finish
+
+        // Elemen Dunia (Kotak Soal, Rintangan Pipa, Jurang, Musuh Goomba)
+        let questionBlocks = [];
+        let pipes = [];
+        let pits = [];
+        let enemies = [];
+        let cloudsAndDecor = [];
+
+        function buildWorld() {
+            questionBlocks = [];
+            pipes = [];
+            pits = [];
+            enemies = [];
+            cloudsAndDecor = [];
+
+            // 10 Kotak Tanda Tanya [?] tersebar sepanjang perjalanan hingga sebelum Finish
+            const blockXPositions = [750, 1550, 2400, 3250, 4100, 4950, 5800, 6650, 7500, 8400];
+
+            blockXPositions.forEach((bx, idx) => {
+                // Tinggi kotak ramah dijangkau lompatan di HP (135px dari tanah)
+                questionBlocks.push({
+                    x: bx,
+                    yOffset: 135, // Jarak di atas tanah yang nyaman disundul di HP
+                    w: 58,
+                    h: 58,
+                    questionIndex: idx,
+                    hit: false,
+                    bounceY: 0
+                });
+
+                // Tambahkan rintangan pipa hijau/batu sebelum kotak soal agar menantang
+                pipes.push({
+                    x: bx - 330,
+                    w: 58,
+                    h: (idx % 2 === 0) ? 68 : 84
+                });
+
+                // Tambahkan musuh Goomba / Koopa di antara pipa dan kotak
+                enemies.push({
+                    x: bx - 130,
+                    startX: bx - 190,
+                    endX: bx + 110,
+                    w: 38,
+                    h: 38,
+                    vx: 1.4,
+                    alive: true
+                });
+
+                // Tambahkan jurang/lubang lahar setelah beberapa kotak
+                if (idx % 2 === 1 && idx < 9) {
+                    pits.push({
+                        x: bx + 280,
+                        w: 105
+                    });
+                }
+            });
+
+            // Dekorasi latar belakang
+            for (let i = 0; i < 45; i++) {
+                cloudsAndDecor.push({
+                    x: i * 240 + Math.random() * 80,
+                    y: 60 + Math.random() * 120,
+                    size: 40 + Math.random() * 35
+                });
+            }
+        }
+
+        function resetGameProgress(keepIdentity = true) {
+            gameState.score = 0;
+            gameState.answeredCount = 0;
+            gameState.isPausedForQuiz = false;
+            gameState.isFinished = false;
+            gameState.currentTheme = 0;
+            if (gameState.quizInterval) clearInterval(gameState.quizInterval);
+
+            mario.x = 120;
+            mario.y = canvas.height - GROUND_OFFSET - mario.h;
+            mario.vy = 0;
+            mario.dir = 1;
+            mario.returningToBlock = null;
+            mario.isGrounded = true;
+            mario.isJumping = false;
+            mario.jumpHoldFrames = 0;
+            cameraX = 0;
+
+            document.getElementById('missed-box-toast').classList.add('hidden');
+            buildWorld();
+            updateHUD();
+        }
+
+        /* =========================================================================
+           4. KONTROL SATU TANGAN & TOMBOL KEMBALI KE KOTAK (RAMAH HP)
+           ========================================================================= */
+        let isHoldingJump = false;
+
+        function startJumpInput(e) {
+            if (!gameState.isRunning || gameState.isPausedForQuiz || gameState.isFinished) return;
+            // Abaikan jika klik tombol mute atau tombol rewind
+            if (e && e.target && (e.target.id === 'btn-mute' || e.target.closest('#btn-rewind-box'))) return;
+
+            isHoldingJump = true;
+            if (mario.isGrounded) {
+                mario.vy = -10.8; // Lompatan awal responsif untuk HP
+                mario.isGrounded = false;
+                mario.isJumping = true;
+                mario.jumpHoldFrames = 0;
+                sound.playJump();
+            }
+        }
+
+        function endJumpInput() {
+            isHoldingJump = false;
+            mario.isJumping = false;
+        }
+
+        // Fungsi memanggil Mario kembali ke kotak soal aktif yang belum dijawab
+        function rewindToActiveBox() {
+            if (!gameState.isRunning || gameState.isPausedForQuiz || gameState.isFinished) return;
+            const nextUnansweredBlock = questionBlocks.find(b => !b.hit);
+            if (!nextUnansweredBlock) return;
+
+            sound.playBump();
+            // Posisikan Mario tepat di sebelah kiri bawah kotak agar siap melompat menyundul
+            mario.x = nextUnansweredBlock.x - 110;
+            mario.y = canvas.height - GROUND_OFFSET - mario.h;
+            mario.vy = 0;
+            mario.dir = 1;
+            mario.returningToBlock = null;
+            document.getElementById('missed-box-toast').classList.add('hidden');
+        }
+
+        document.getElementById('btn-rewind-box').addEventListener('click', (e) => {
+            e.stopPropagation();
+            rewindToActiveBox();
+        });
+
+        // Tombol khusus lompat di pojok kanan bawah HP
+        const btnJumpMobile = document.getElementById('btn-jump-mobile');
+        btnJumpMobile.addEventListener('pointerdown', (e) => {
+            e.stopPropagation();
+            startJumpInput(e);
+        });
+        btnJumpMobile.addEventListener('pointerup', endJumpInput);
+        btnJumpMobile.addEventListener('pointercancel', endJumpInput);
+
+        // Event Listeners Layar Sentuh & Mouse (Ketuk di mana saja di layar HP)
+        window.addEventListener('pointerdown', (e) => {
+            if (e.target.closest('button') || e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.closest('label')) return;
+            startJumpInput(e);
+        });
+        window.addEventListener('pointerup', endJumpInput);
+        window.addEventListener('pointercancel', endJumpInput);
+
+        // Dukungan Tombol Spasi / Panah Atas untuk Laptop/PC
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' || e.code === 'ArrowUp') {
+                if (gameState.isRunning && !gameState.isPausedForQuiz) {
+                    e.preventDefault();
+                }
+                if (!isHoldingJump) startJumpInput(e);
+            }
+        });
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'Space' || e.code === 'ArrowUp') {
+                endJumpInput();
+            }
+        });
+
+        /* =========================================================================
+           5. SISTEM KEAMANAN ANTI-CURANG (TAB SWITCH / BLUR & ANTI COPY-PASTE)
+           ========================================================================= */
+        function triggerSecurityViolation() {
+            if (!gameState.isRunning || gameState.isFinished) return;
+
+            // Hentikan semua aktivitas dan paksa reset skor jadi 0
+            gameState.isRunning = false;
+            gameState.isPausedForQuiz = false;
+            if (gameState.quizInterval) clearInterval(gameState.quizInterval);
+            sound.stopBGM();
+            sound.playWrong();
+
+            document.getElementById('quiz-modal').classList.add('hidden');
+            document.getElementById('security-modal').classList.remove('hidden');
+        }
+
+        // Deteksi bila siswa berpindah tab browser atau meminimalkan aplikasi
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && gameState.isRunning && !gameState.isFinished) {
+                triggerSecurityViolation();
+            }
+        });
+
+        window.addEventListener('blur', () => {
+            if (gameState.isRunning && !gameState.isFinished) {
+                triggerSecurityViolation();
+            }
+        });
+
+        // Blokir Copy, Cut, Paste, serta Shortcut Inspect/Copy
+        ['copy', 'cut', 'paste', 'dragstart'].forEach(evt => {
+            document.addEventListener(evt, (e) => e.preventDefault());
+        });
+
+        window.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && ['c', 'v', 'x', 'u', 's', 'a', 'p'].includes(e.key.toLowerCase())) {
+                e.preventDefault();
+            }
+            if (e.key === 'F12') e.preventDefault();
+        });
+
+        document.getElementById('btn-reset-security').addEventListener('click', () => {
+            document.getElementById('security-modal').classList.add('hidden');
+            resetGameProgress(true);
+            gameState.isRunning = true;
+            sound.startBGM(0);
+        });
+
+        /* =========================================================================
+           6. LOGIKA FISIKA & UPDATE PERMAINAN
+           ========================================================================= */
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            if (!gameState.isRunning) {
+                mario.y = canvas.height - GROUND_OFFSET - mario.h;
+            }
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function getThemeByX(x) {
+            if (x < 2500) return 0; // Area Luar Ruangan (Overworld)
+            if (x < 5000) return 1; // Dunia Bawah Tanah (Underground)
+            if (x < 7400) return 2; // Area Bawah Air (Underwater)
+            return 3;               // Kastil Bowser (Lahar)
+        }
+
+        function getThemeName(idx) {
+            const names = [
+                "1. Area Luar Ruangan ☀️",
+                "2. Dunia Bawah Tanah 🧱",
+                "3. Area Laut Bawah Air 🌊",
+                "4. Kastil Bowser 🔥"
+            ];
+            return names[idx] || names[0];
+        }
+
+        function updateGame() {
+            if (!gameState.isRunning || gameState.isPausedForQuiz || gameState.isFinished) return;
+
+            const groundY = canvas.height - GROUND_OFFSET;
+
+            // Cek pergantian tema dunia untuk mengganti musik & HUD
+            const newTheme = getThemeByX(mario.x);
+            if (newTheme !== gameState.currentTheme) {
+                gameState.currentTheme = newTheme;
+                sound.startBGM(newTheme);
+                updateHUD();
+            }
+
+            // 0. FITUR AUTO-RETURN: Cek apakah Mario melewati kotak soal [?] yang belum disundul
+            const nextBlock = questionBlocks.find(b => !b.hit);
+            const toastEl = document.getElementById('missed-box-toast');
+
+            if (nextBlock) {
+                // Jika Mario sudah terlanjur melewati kotak sejauh 95px ke kanan, Mario otomatis berbalik ke kiri!
+                if (mario.dir === 1 && mario.x > nextBlock.x + nextBlock.w + 95) {
+                    mario.dir = -1;
+                    mario.returningToBlock = nextBlock;
+                    sound.playBump();
+                    toastEl.classList.remove('hidden');
+                }
+                // Jika Mario sedang berlari balik ke kiri dan sudah kembali di sebelah kiri kotak soal, hadap kanan lagi!
+                if (mario.dir === -1 && mario.x <= nextBlock.x - 115) {
+                    mario.dir = 1;
+                    mario.returningToBlock = null;
+                    toastEl.classList.add('hidden');
+                }
+            } else {
+                mario.dir = 1;
+                toastEl.classList.add('hidden');
+            }
+
+            // 1. Pergerakan Horizontal Otomatis (Kanan atau Balik ke Kiri jika melewati kotak)
+            let nextX = mario.x + (mario.vx * mario.dir);
+
+            // Cek tabrakan horizontal dengan Pipa Rintangan (Hanya saat berlari maju ke kanan)
+            if (mario.dir === 1) {
+                for (let pipe of pipes) {
+                    const pipeTop = groundY - pipe.h;
+                    if (
+                        nextX + mario.w > pipe.x &&
+                        nextX < pipe.x + pipe.w &&
+                        mario.y + mario.h > pipeTop + 8
+                    ) {
+                        // Tertahan di depan pipa sampai pemain melompatinya
+                        nextX = pipe.x - mario.w;
+                    }
+                }
+            }
+            mario.x = nextX;
+
+            // 2. Logika Lompatan Semakin Lama Ditahan Semakin Tinggi
+            if (isHoldingJump && mario.isJumping && mario.jumpHoldFrames < mario.maxJumpHoldFrames) {
+                mario.vy -= 0.62; // Tambahan daya angkat selama layar ditahan
+                mario.jumpHoldFrames++;
+            }
+
+            // Gravitasi
+            mario.vy += 0.65;
+            if (mario.vy > 14) mario.vy = 14;
+            let nextY = mario.y + mario.vy;
+
+            // 3. Cek Sundulan atau Sentuhan dengan Kotak Tanda Tanya [?]
+            for (let block of questionBlocks) {
+                const blockY = groundY - block.yOffset + block.bounceY;
+
+                // Area deteksi diperluas sedikit agar sangat responsif di layar HP
+                const overlapX = (mario.x + mario.w > block.x - 4) && (mario.x < block.x + block.w + 4);
+                if (overlapX) {
+                    // Menyundul dari bawah atau menyentuh bagian samping/atas kotak yang belum terjawab
+                    if (!block.hit && (
+                        (mario.vy < 0 && mario.y >= blockY + block.h - 18 && nextY <= blockY + block.h + 10) ||
+                        (nextY + mario.h > blockY && nextY < blockY + block.h)
+                    )) {
+                        if (mario.vy < 0) {
+                            nextY = blockY + block.h;
+                            mario.vy = 2;
+                        }
+                        mario.isJumping = false;
+                        mario.dir = 1;
+                        mario.returningToBlock = null;
+                        toastEl.classList.add('hidden');
+
+                        block.hit = true;
+                        block.bounceY = -12;
+                        sound.playBlockHit();
+                        openQuizModal(block.questionIndex);
+                    }
+                    // Mendarat di atas kotak yang sudah terjawab
+                    else if (block.hit && mario.vy >= 0 && mario.y + mario.h <= blockY + 14 && nextY + mario.h >= blockY) {
+                        nextY = blockY - mario.h;
+                        mario.vy = 0;
+                        mario.isGrounded = true;
+                        mario.isJumping = false;
+                    }
+                }
+
+                // Kembalikan efek pantulan kotak
+                if (block.bounceY < 0) block.bounceY += 2;
+            }
+
+            // 4. Cek Pendaratan di Atas Pipa
+            let onPipe = false;
+            for (let pipe of pipes) {
+                const pipeTop = groundY - pipe.h;
+                if (
+                    mario.x + mario.w > pipe.x + 4 &&
+                    mario.x < pipe.x + pipe.w - 4 &&
+                    mario.vy >= 0 &&
+                    mario.y + mario.h <= pipeTop + 16 &&
+                    nextY + mario.h >= pipeTop
+                ) {
+                    nextY = pipeTop - mario.h;
+                    mario.vy = 0;
+                    mario.isGrounded = true;
+                    mario.isJumping = false;
+                    onPipe = true;
+                }
+            }
+
+            // 5. Cek apakah berada di atas Jurang / Lubang Lahar (Nonaktifkan jurang saat Mario berlari balik ke kotak)
+            let overPit = false;
+            if (mario.dir === 1) {
+                for (let pit of pits) {
+                    if (mario.x + mario.w * 0.3 > pit.x && mario.x + mario.w * 0.7 < pit.x + pit.w) {
+                        overPit = true;
+                        break;
+                    }
+                }
+            }
+
+            // 6. Pendaratan di Tanah Utama
+            if (!onPipe && !overPit && nextY + mario.h >= groundY) {
+                nextY = groundY - mario.h;
+                mario.vy = 0;
+                mario.isGrounded = true;
+                mario.isJumping = false;
+            } else if (overPit && nextY > canvas.height + 40) {
+                // Jika jatuh ke jurang, mundur sedikit sebelum jurang agar tidak terjebak
+                sound.playBump();
+                mario.x -= 200;
+                mario.y = groundY - mario.h - 100;
+                mario.vy = 0;
+                nextY = mario.y;
+            }
+
+            mario.y = nextY;
+
+            // 7. Update Rintangan Musuh (Goomba)
+            if (mario.invincibleTimer > 0) mario.invincibleTimer--;
+
+            for (let en of enemies) {
+                if (!en.alive) continue;
+                en.x += en.vx;
+                if (en.x < en.startX || en.x > en.endX) en.vx *= -1;
+
+                const enY = groundY - en.h;
+                // Deteksi tabrakan Mario dengan Musuh
+                if (
+                    mario.x + mario.w - 6 > en.x &&
+                    mario.x + 6 < en.x + en.w &&
+                    mario.y + mario.h > enY + 4 &&
+                    mario.y < enY + en.h
+                ) {
+                    // Jika Mario menginjak dari atas
+                    if (mario.vy > 0 && mario.y + mario.h - mario.vy <= enY + 18) {
+                        en.alive = false;
+                        mario.vy = -9;
+                        sound.playBump();
+                    } else if (mario.invincibleTimer === 0 && mario.dir === 1) {
+                        // Terpental mundur sedikit jika menabrak musuh dari samping
+                        sound.playBump();
+                        mario.x = Math.max(100, mario.x - 130);
+                        mario.vy = -7;
+                        mario.invincibleTimer = 45;
+                    }
+                }
+            }
+
+            // 8. Update Kamera Responsif (Menyesuaikan layar Potret / Lanskap HP)
+            const camOffset = canvas.width < 640 ? canvas.width * 0.18 : canvas.width * 0.25;
+            cameraX = mario.x - camOffset;
+            if (cameraX < 0) cameraX = 0;
+            mario.animFrame += 0.25;
+
+            // 9. Cek Garis Finish
+            if (mario.x >= LEVEL_END_X) {
+                finishGame();
+            }
+        }
+
+        /* =========================================================================
+           7. RENDER GRAFIS 4 TEMA IKONIK SUPER MARIO BROS
+           ========================================================================= */
+        function drawGame() {
+            const w = canvas.width;
+            const h = canvas.height;
+            const groundY = h - GROUND_OFFSET;
+            const theme = gameState.currentTheme;
+
+            // 1. Langit / Latar Belakang Sesuai 4 Tema
+            const bgGradients = [
+                ['#38bdf8', '#bae6fd'], // 0: Luar Ruangan (Langit Biru Cerah)
+                ['#0f172a', '#1e293b'], // 1: Dunia Bawah Tanah (Gelap Biru Tua)
+                ['#0284c7', '#0369a1'], // 2: Area Laut / Bawah Air (Biru Laut Dalam)
+                ['#450a0a', '#7f1d1d']  // 3: Kastil Bowser (Merah Gelap & Lahar)
+            ];
+
+            const grad = ctx.createLinearGradient(0, 0, 0, h);
+            grad.addColorStop(0, bgGradients[theme][0]);
+            grad.addColorStop(1, bgGradients[theme][1]);
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, w, h);
+
+            ctx.save();
+            ctx.translate(-cameraX, 0);
+
+            // 2. Dekorasi Latar Belakang (Awan / Gelembung Air / Pilar Kastil)
+            for (let dec of cloudsAndDecor) {
+                if (dec.x + 200 < cameraX || dec.x - 200 > cameraX + w) continue;
+                const dTheme = getThemeByX(dec.x);
+
+                if (dTheme === 0) {
+                    // Awan Putih Ramah & Bukit Hijau
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+                    ctx.beginPath();
+                    ctx.arc(dec.x, dec.y, dec.size * 0.6, 0, Math.PI * 2);
+                    ctx.arc(dec.x + dec.size * 0.5, dec.y - 8, dec.size * 0.7, 0, Math.PI * 2);
+                    ctx.arc(dec.x + dec.size, dec.y, dec.size * 0.6, 0, Math.PI * 2);
+                    ctx.fill();
+                } else if (dTheme === 1) {
+                    // Stalaktit Gua Bawah Tanah
+                    ctx.fillStyle = '#334155';
+                    ctx.beginPath();
+                    ctx.moveTo(dec.x, 0);
+                    ctx.lineTo(dec.x + 40, 0);
+                    ctx.lineTo(dec.x + 20, dec.y + 40);
+                    ctx.closePath();
+                    ctx.fill();
+                } else if (dTheme === 2) {
+                    // Gelembung Bawah Air & Karang
+                    ctx.strokeStyle = 'rgba(224, 242, 254, 0.6)';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.arc(dec.x, dec.y + Math.sin(Date.now() / 400 + dec.x) * 15, 14, 0, Math.PI * 2);
+                    ctx.stroke();
+                } else {
+                    // Rantai & Bara Api Kastil Bowser
+                    ctx.fillStyle = 'rgba(251, 146, 60, 0.35)';
+                    ctx.beginPath();
+                    ctx.arc(dec.x, dec.y, 18, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            // 3. Gambar Tanah Bata & Jurang / Lahar
+            const tileW = 48;
+            const startTile = Math.floor(cameraX / tileW) * tileW;
+            const endTile = cameraX + w + tileW;
+
+            for (let tx = startTile; tx < endTile; tx += tileW) {
+                // Cek apakah posisi tile ini termasuk dalam jurang
+                let inPit = false;
+                for (let pit of pits) {
+                    if (tx + tileW * 0.5 > pit.x && tx + tileW * 0.5 < pit.x + pit.w) {
+                        inPit = true;
+                        break;
+                    }
+                }
+
+                const tTheme = getThemeByX(tx);
+
+                if (inPit) {
+                    // Gambar Air atau Lahar Membara di Dasar Jurang
+                    ctx.fillStyle = (tTheme === 3) ? '#ef4444' : '#0284c7';
+                    ctx.fillRect(tx, groundY + 28, tileW + 1, GROUND_OFFSET);
+                    ctx.fillStyle = (tTheme === 3) ? '#facc15' : '#38bdf8';
+                    ctx.fillRect(tx, groundY + 28, tileW + 1, 8);
+                    continue;
+                }
+
+                // Warna Tanah Berdasarkan 4 Tema
+                if (tTheme === 0) {
+                    // Tanah Bata Cokelat & Rumput Hijau
+                    ctx.fillStyle = '#b45309';
+                    ctx.fillRect(tx, groundY, tileW, GROUND_OFFSET);
+                    ctx.fillStyle = '#22c55e';
+                    ctx.fillRect(tx, groundY, tileW, 14);
+                } else if (tTheme === 1) {
+                    // Bata Biru Dunia Bawah Tanah
+                    ctx.fillStyle = '#1e3a8a';
+                    ctx.fillRect(tx, groundY, tileW, GROUND_OFFSET);
+                    ctx.fillStyle = '#3b82f6';
+                    ctx.fillRect(tx, groundY, tileW, 10);
+                } else if (tTheme === 2) {
+                    // Pasir Koral Laut Bawah Air
+                    ctx.fillStyle = '#d97706';
+                    ctx.fillRect(tx, groundY, tileW, GROUND_OFFSET);
+                    ctx.fillStyle = '#fde047';
+                    ctx.fillRect(tx, groundY, tileW, 12);
+                } else {
+                    // Jembatan Batu Kastil Bowser
+                    ctx.fillStyle = '#3f3f46';
+                    ctx.fillRect(tx, groundY, tileW, GROUND_OFFSET);
+                    ctx.fillStyle = '#71717a';
+                    ctx.fillRect(tx, groundY, tileW, 12);
+                }
+
+                // Garis Bata
+                ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(tx, groundY, tileW, GROUND_OFFSET);
+            }
+
+            // 4. Gambar Pipa Hijau / Rintangan
+            for (let pipe of pipes) {
+                const pipeY = groundY - pipe.h;
+                const pTheme = getThemeByX(pipe.x);
+
+                ctx.fillStyle = (pTheme === 3) ? '#52525b' : '#16a34a';
+                ctx.fillRect(pipe.x + 4, pipeY + 24, pipe.w - 8, pipe.h - 24);
+                ctx.strokeStyle = '#052e16';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(pipe.x + 4, pipeY + 24, pipe.w - 8, pipe.h - 24);
+
+                // Kepala Pipa
+                ctx.fillStyle = (pTheme === 3) ? '#71717a' : '#22c55e';
+                ctx.fillRect(pipe.x, pipeY, pipe.w, 24);
+                ctx.strokeRect(pipe.x, pipeY, pipe.w, 24);
+            }
+
+            // 5. Gambar 10 Kotak Tanda Tanya [?]
+            for (let block of questionBlocks) {
+                const by = groundY - block.yOffset + block.bounceY;
+
+                // Indikator sorotan cahaya jika belum disundul
+                if (!block.hit) {
+                    ctx.fillStyle = 'rgba(250, 204, 21, 0.22)';
+                    ctx.fillRect(block.x + 8, by + block.h, block.w - 16, block.yOffset - block.h);
+                }
+
+                ctx.fillStyle = block.hit ? '#94a3b8' : '#f59e0b';
+                ctx.fillRect(block.x, by, block.w, block.h);
+
+                ctx.strokeStyle = block.hit ? '#475569' : '#fef08a';
+                ctx.lineWidth = 4;
+                ctx.strokeRect(block.x, by, block.w, block.h);
+
+                // Teks [?] atau Centang
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 24px "Press Start 2P", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(block.hit ? '✓' : '?', block.x + block.w / 2, by + block.h / 2 + 2);
+
+                // Label Nomor Soal di atas kotak
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 12px Fredoka, sans-serif';
+                ctx.fillText(`SOAL #${block.questionIndex + 1}`, block.x + block.w / 2, by - 12);
+            }
+
+            // 6. Gambar Musuh Rintangan (Goomba)
+            for (let en of enemies) {
+                if (!en.alive) continue;
+                const enY = groundY - en.h;
+
+                // Badan Jamur Cokelat Goomba
+                ctx.fillStyle = '#9a3412';
+                ctx.beginPath();
+                ctx.arc(en.x + en.w / 2, enY + 18, 20, Math.PI, 0);
+                ctx.lineTo(en.x + en.w, enY + 28);
+                ctx.lineTo(en.x, enY + 28);
+                ctx.closePath();
+                ctx.fill();
+
+                // Kaki
+                ctx.fillStyle = '#fde68a';
+                ctx.fillRect(en.x + 8, enY + 28, en.w - 16, 12);
+
+                // Mata
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(en.x + 10, enY + 10, 6, 10);
+                ctx.fillRect(en.x + 24, enY + 10, 6, 10);
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(en.x + 12, enY + 13, 3, 6);
+                ctx.fillRect(en.x + 25, enY + 13, 3, 6);
+            }
+
+            // 7. Gambar Tiang Bendera & Kastil Garis Finish
+            const flagX = LEVEL_END_X;
+            ctx.fillStyle = '#fef08a';
+            ctx.fillRect(flagX, groundY - 260, 8, 260);
+            ctx.beginPath();
+            ctx.arc(flagX + 4, groundY - 265, 12, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Bendera Finish
+            ctx.fillStyle = '#22c55e';
+            ctx.beginPath();
+            ctx.moveTo(flagX + 8, groundY - 250);
+            ctx.lineTo(flagX + 95, groundY - 215);
+            ctx.lineTo(flagX + 8, groundY - 180);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 14px "Press Start 2P"';
+            ctx.textAlign = 'left';
+            ctx.fillText('FINISH!', flagX - 20, groundY - 285);
+
+            // 8. Gambar Karakter SUPER MARIO
+            drawMarioCharacter(mario.x, mario.y, mario.w, mario.h);
+
+            ctx.restore();
+        }
+
+        function drawMarioCharacter(x, y, w, h) {
+            if (mario.invincibleTimer % 4 >= 2) return; // Efek berkedip saat kena rintangan
+
+            ctx.save();
+            // Jika Mario sedang berbalik arah ke kiri (mencari kotak yang terlewat), balikkan arah gambarnya
+            if (mario.dir === -1) {
+                ctx.translate(x + w / 2, 0);
+                ctx.scale(-1, 1);
+                ctx.translate(-(x + w / 2), 0);
+            }
+
+            // Topi Merah Ikonik Mario
+            ctx.fillStyle = '#ef4444';
+            ctx.fillRect(x + 4, y, w - 8, 12);
+            ctx.fillRect(x + 4, y + 6, w + 4, 6); // Moncong topi
+
+            // Wajah
+            ctx.fillStyle = '#fed7aa';
+            ctx.fillRect(x + 8, y + 12, w - 14, 14);
+
+            // Mata & Kumis Khas Mario
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(x + 26, y + 14, 4, 5); // Mata
+            ctx.fillRect(x + 22, y + 21, 14, 4); // Kumis
+
+            // Baju Merah & Overall Biru
+            ctx.fillStyle = '#ef4444';
+            ctx.fillRect(x + 6, y + 26, w - 12, 16);
+
+            ctx.fillStyle = '#2563eb';
+            ctx.fillRect(x + 10, y + 28, w - 20, 16);
+            // Kancing Kuning
+            ctx.fillStyle = '#facc15';
+            ctx.fillRect(x + 14, y + 33, 4, 4);
+            ctx.fillRect(x + 24, y + 33, 4, 4);
+
+            // Sepatu Cokelat (Animasi Berlari)
+            const legOffset = mario.isGrounded ? Math.sin(mario.animFrame) * 6 : 4;
+            ctx.fillStyle = '#78350f';
+            ctx.fillRect(x + 6 + legOffset, y + 44, 14, 10);
+            ctx.fillRect(x + 22 - legOffset, y + 44, 14, 10);
+
+            ctx.restore();
+        }
+
+        /* =========================================================================
+           8. SISTEM MODAL SOAL KUIS TKA (COUNTDOWN 60 DETIK / 1 MENIT, 1X KESEMPATAN)
+              Mendukung: Pilihan Ganda (A-E), PG Kompleks (Checkbox), & Tabel Benar/Salah
+           ========================================================================= */
+        function openQuizModal(qIndex) {
+            gameState.isPausedForQuiz = true;
+            isHoldingJump = false;
+            gameState.activeQuestionIndex = qIndex;
+            gameState.quizTimeLeft = 60;
+
+            const qData = QUESTIONS[qIndex];
+            document.getElementById('quiz-num').textContent = qIndex + 1;
+            document.getElementById('quiz-type-badge').textContent = qData.badge;
+            document.getElementById('quiz-timer').textContent = `60s`;
+
+            // Isi Kisi-Kisi TKA
+            document.getElementById('tka-elemen').textContent = qData.elemen;
+            document.getElementById('tka-subelemen').textContent = qData.subelemen;
+            document.getElementById('tka-kompetensi').textContent = qData.kompetensi;
+            document.getElementById('tka-indikator').textContent = qData.indikator;
+
+            // Isi Stimulus & Pertanyaan
+            document.getElementById('quiz-stimulus').innerHTML = qData.stimulus;
+            document.getElementById('quiz-question').textContent = qData.q;
+
+            const optionsContainer = document.getElementById('quiz-options');
+            optionsContainer.innerHTML = '';
+
+            const submitComplexBtn = document.getElementById('btn-submit-complex');
+            submitComplexBtn.classList.add('hidden');
+
+            // Render berdasarkan tipe soal TKA
+            if (qData.type === 'single') {
+                optionsContainer.className = "grid grid-cols-1 gap-2";
+                qData.options.forEach((optText, idx) => {
+                    const btn = document.createElement('button');
+                    btn.className = "w-full text-left px-3.5 py-2.5 rounded-xl border-2 border-amber-300 bg-white hover:bg-amber-100 font-bold text-slate-800 text-xs md:text-sm transition shadow-sm cursor-pointer";
+                    btn.textContent = optText;
+                    btn.onclick = () => evaluateSingleChoice(idx, btn);
+                    optionsContainer.appendChild(btn);
+                });
+            } else if (qData.type === 'complex') {
+                optionsContainer.className = "space-y-2";
+                qData.options.forEach((optText, idx) => {
+                    const label = document.createElement('label');
+                    label.className = "flex items-start gap-3 p-2.5 rounded-xl border-2 border-amber-300 bg-white hover:bg-amber-50 cursor-pointer transition text-xs md:text-sm font-semibold text-slate-800";
+                    label.innerHTML = `
+                        <input type="checkbox" value="${idx}" class="mt-0.5 w-4 h-4 accent-amber-600 rounded cursor-pointer shrink-0">
+                        <span>${optText}</span>
+                    `;
+                    optionsContainer.appendChild(label);
+                });
+                submitComplexBtn.classList.remove('hidden');
+                submitComplexBtn.onclick = () => evaluateComplexChoice();
+            } else if (qData.type === 'true_false') {
+                optionsContainer.className = "overflow-x-auto";
+                const hTrue = qData.headers ? qData.headers[0] : "Benar";
+                const hFalse = qData.headers ? qData.headers[1] : "Salah";
+
+                let tableHTML = `
+                    <table class="w-full border-collapse border-2 border-amber-400 bg-white rounded-xl overflow-hidden text-xs md:text-sm">
+                        <thead>
+                            <tr class="bg-amber-200 text-amber-950 font-bold">
+                                <th class="border border-amber-300 p-2 text-left">Pernyataan</th>
+                                <th class="border border-amber-300 p-2 text-center w-20">${hTrue}</th>
+                                <th class="border border-amber-300 p-2 text-center w-20">${hFalse}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                qData.statements.forEach((st, idx) => {
+                    tableHTML += `
+                        <tr id="tf-row-${idx}" class="hover:bg-amber-50/60">
+                            <td class="border border-amber-300 p-2 font-medium text-slate-800">${st.text}</td>
+                            <td class="border border-amber-300 p-2 text-center">
+                                <input type="radio" name="tf-${idx}" value="true" class="w-4 h-4 accent-emerald-600 cursor-pointer">
+                            </td>
+                            <td class="border border-amber-300 p-2 text-center">
+                                <input type="radio" name="tf-${idx}" value="false" class="w-4 h-4 accent-red-600 cursor-pointer">
+                            </td>
+                        </tr>
+                    `;
+                });
+                tableHTML += `</tbody></table>`;
+                optionsContainer.innerHTML = tableHTML;
+                submitComplexBtn.classList.remove('hidden');
+                submitComplexBtn.onclick = () => evaluateTrueFalseChoice();
+            }
+
+            document.getElementById('quiz-feedback').classList.add('hidden');
+            document.getElementById('btn-continue-game').classList.add('hidden');
+            document.getElementById('quiz-modal').classList.remove('hidden');
+
+            // Mulai Countdown 60 Detik (1 Menit)
+            if (gameState.quizInterval) clearInterval(gameState.quizInterval);
+            gameState.quizInterval = setInterval(() => {
+                gameState.quizTimeLeft--;
+                document.getElementById('quiz-timer').textContent = `${gameState.quizTimeLeft}s`;
+                if (gameState.quizTimeLeft <= 0) {
+                    clearInterval(gameState.quizInterval);
+                    handleQuizTimeout();
+                }
+            }, 1000);
+        }
+
+        function showFeedbackAndFinishTurn(isCorrect, explanationText) {
+            if (gameState.quizInterval) clearInterval(gameState.quizInterval);
+            document.getElementById('btn-submit-complex').classList.add('hidden');
+
+            const feedbackBox = document.getElementById('quiz-feedback');
+            const feedbackTitle = document.getElementById('feedback-title');
+            const feedbackDesc = document.getElementById('feedback-desc');
+            feedbackBox.classList.remove('hidden', 'bg-emerald-100', 'border-emerald-400', 'text-emerald-900', 'bg-red-100', 'border-red-400', 'text-red-900');
+
+            gameState.answeredCount++;
+
+            if (isCorrect) {
+                gameState.score += 10;
+                sound.playCorrect();
+                feedbackBox.classList.add('bg-emerald-100', 'border-emerald-400', 'text-emerald-900');
+                feedbackTitle.textContent = "🎉 JAWABAN TEPAT! (+10 POIN)";
+                feedbackDesc.textContent = explanationText;
+            } else {
+                sound.playWrong();
+                feedbackBox.classList.add('bg-red-100', 'border-red-400', 'text-red-900');
+                feedbackTitle.textContent = "❌ JAWABAN KURANG TEPAT! (+0 POIN)";
+                feedbackDesc.textContent = explanationText;
+            }
+
+            updateHUD();
+            document.getElementById('btn-continue-game').classList.remove('hidden');
+        }
+
+        // Evaluasi Tipe 1: Pilihan Ganda A-E
+        function evaluateSingleChoice(selectedIndex, clickedBtn) {
+            const qData = QUESTIONS[gameState.activeQuestionIndex];
+            const allBtns = document.getElementById('quiz-options').querySelectorAll('button');
+
+            allBtns.forEach((b, idx) => {
+                b.disabled = true;
+                b.classList.remove('hover:bg-amber-100', 'cursor-pointer');
+                if (idx === qData.correct) {
+                    b.classList.replace('border-amber-300', 'border-emerald-500');
+                    b.classList.replace('bg-white', 'bg-emerald-100');
+                }
+            });
+
+            const isCorrect = (selectedIndex === qData.correct);
+            if (!isCorrect && clickedBtn) {
+                clickedBtn.classList.replace('border-amber-300', 'border-red-500');
+                clickedBtn.classList.replace('bg-white', 'bg-red-100');
+            }
+
+            showFeedbackAndFinishTurn(isCorrect, qData.explanation);
+        }
+
+        // Evaluasi Tipe 2: Pilihan Ganda Kompleks (Checkbox)
+        function evaluateComplexChoice() {
+            const qData = QUESTIONS[gameState.activeQuestionIndex];
+            const checkboxes = document.getElementById('quiz-options').querySelectorAll('input[type="checkbox"]');
+            const selectedIndices = [];
+
+            checkboxes.forEach((cb, idx) => {
+                cb.disabled = true;
+                if (cb.checked) selectedIndices.push(idx);
+                const parentLabel = cb.closest('label');
+                if (qData.correct.includes(idx)) {
+                    parentLabel.classList.replace('border-amber-300', 'border-emerald-500');
+                    parentLabel.classList.replace('bg-white', 'bg-emerald-100');
+                } else if (cb.checked) {
+                    parentLabel.classList.replace('border-amber-300', 'border-red-500');
+                    parentLabel.classList.replace('bg-white', 'bg-red-100');
+                }
+            });
+
+            const isCorrect = (
+                selectedIndices.length === qData.correct.length &&
+                selectedIndices.every(val => qData.correct.includes(val))
+            );
+
+            showFeedbackAndFinishTurn(isCorrect, qData.explanation);
+        }
+
+        // Evaluasi Tipe 3: Tabel Benar / Salah atau Sesuai / Tidak Sesuai
+        function evaluateTrueFalseChoice() {
+            const qData = QUESTIONS[gameState.activeQuestionIndex];
+            let allCorrect = true;
+
+            qData.statements.forEach((st, idx) => {
+                const radios = document.getElementsByName(`tf-${idx}`);
+                let userVal = null;
+                radios.forEach(r => {
+                    r.disabled = true;
+                    if (r.checked) userVal = (r.value === 'true');
+                });
+
+                const row = document.getElementById(`tf-row-${idx}`);
+                if (userVal === st.ans) {
+                    row.classList.add('bg-emerald-100');
+                } else {
+                    allCorrect = false;
+                    row.classList.add('bg-red-100');
+                }
+            });
+
+            showFeedbackAndFinishTurn(allCorrect, qData.explanation);
+        }
+
+        function handleQuizTimeout() {
+            const qData = QUESTIONS[gameState.activeQuestionIndex];
+            const inputs = document.getElementById('quiz-options').querySelectorAll('button, input');
+            inputs.forEach(el => el.disabled = true);
+
+            document.getElementById('btn-submit-complex').classList.add('hidden');
+            gameState.answeredCount++;
+            sound.playWrong();
+
+            const feedbackBox = document.getElementById('quiz-feedback');
+            feedbackBox.classList.remove('hidden', 'bg-emerald-100', 'border-emerald-400', 'text-emerald-900');
+            feedbackBox.classList.add('bg-red-100', 'border-red-400', 'text-red-900');
+            document.getElementById('feedback-title').textContent = "⏰ WAKTU HABIS! (+0 POIN)";
+            document.getElementById('feedback-desc').textContent = qData.explanation;
+
+            updateHUD();
+            document.getElementById('btn-continue-game').classList.remove('hidden');
+        }
+
+        document.getElementById('btn-continue-game').addEventListener('click', () => {
+            document.getElementById('quiz-modal').classList.add('hidden');
+            gameState.isPausedForQuiz = false;
+        });
+
+        /* =========================================================================
+           9. UPDATE HUD, LOGIN FORM, & LAYAR FINISH
+           ========================================================================= */
+        function updateHUD() {
+            document.getElementById('hud-name').textContent = `${gameState.studentName} (${gameState.studentClass} - ${gameState.studentAbsen})`;
+            document.getElementById('hud-theme').textContent = getThemeName(gameState.currentTheme);
+            document.getElementById('hud-progress').textContent = `${gameState.answeredCount}/10`;
+            document.getElementById('hud-score').textContent = gameState.score;
+        }
+
+        document.getElementById('login-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const nama = document.getElementById('input-nama').value.trim();
+            const absen = document.getElementById('input-absen').value.trim();
+            const kelas = document.getElementById('input-kelas').value;
+
+            if (!nama || !absen || (kelas !== 'XA' && kelas !== 'XB')) {
+                document.getElementById('login-error').classList.remove('hidden');
+                return;
+            }
+
+            document.getElementById('login-error').classList.add('hidden');
+            gameState.studentName = nama;
+            gameState.studentAbsen = absen;
+            gameState.studentClass = kelas;
+
+            sound.init();
+            resetGameProgress(true);
+
+            document.getElementById('login-modal').classList.add('hidden');
+            document.getElementById('hud').classList.remove('hidden');
+            document.getElementById('control-hint').classList.remove('hidden');
+
+            gameState.isRunning = true;
+            sound.startBGM(0);
+        });
+
+        document.getElementById('btn-mute').addEventListener('click', (e) => {
+            e.stopPropagation();
+            sound.isMuted = !sound.isMuted;
+            document.getElementById('btn-mute').textContent = sound.isMuted ? '🔇' : '🔊';
+        });
+
+        function finishGame() {
+            gameState.isFinished = true;
+            gameState.isRunning = false;
+            sound.stopBGM();
+            sound.playVictory();
+
+            document.getElementById('final-nama').textContent = gameState.studentName;
+            document.getElementById('final-identitas').textContent = `Absen ${gameState.studentAbsen} / Kelas ${gameState.studentClass}`;
+            document.getElementById('final-answered').textContent = `${gameState.answeredCount} dari 10 Soal`;
+            document.getElementById('final-score').textContent = gameState.score;
+
+            document.getElementById('finish-modal').classList.remove('hidden');
+        }
+
+        document.getElementById('btn-play-again').addEventListener('click', () => {
+            document.getElementById('finish-modal').classList.add('hidden');
+            resetGameProgress(true);
+            gameState.isRunning = true;
+            sound.startBGM(0);
+        });
+
+        /* =========================================================================
+           10. GAME LOOP UTAMA
+           ========================================================================= */
+        function gameLoop() {
+            updateGame();
+            drawGame();
+            requestAnimationFrame(gameLoop);
+        }
+
+        window.onload = function () {
+            buildWorld();
+            resizeCanvas();
+            gameLoop();
+        };
+    </script>
+</body>
+</html>
